@@ -1,13 +1,13 @@
 # NimbusWatch
 
-NimbusWatch is a cloud-hosted binary anomaly-detection project built on `Isolation Forest` and a curated `CICIDS2017` subset. It keeps the machine-learning model aligned with the approved proposal while shifting deployment to `Google Cloud` for a stronger cloud-computing demonstration.
+NimbusWatch is a binary anomaly-detection project built on `Isolation Forest` and a curated `CICIDS2017` subset. The project is designed for **zero-cost delivery**: model training runs locally, while the inference web app is intended to be deployed for free on `Hugging Face Spaces` as a managed cloud-hosted service.
 
-## Architecture
+## Primary Architecture
 
-- `Vertex AI Custom Job` runs containerized training in the cloud.
-- `Google Cloud Storage` stores dataset copies and exported artifacts.
-- `Artifact Registry` stores the training and serving images.
-- `Cloud Run` serves a `FastAPI` inference API and a minimal HTML demo page.
+- Local pipeline builds a curated `CICIDS2017` subset.
+- Local training produces the final `Isolation Forest` model and evaluation artifacts.
+- The deployed component is the stateless `FastAPI` inference app.
+- The live cloud target is `Hugging Face Spaces` using a Docker-based deployment.
 
 Artifacts exported after training:
 
@@ -15,6 +15,8 @@ Artifacts exported after training:
 - `feature_schema.json`
 - `metrics.json`
 - `training_summary.json`
+
+Generated datasets and artifacts are **not source-controlled inputs**. They are recreated locally when needed and copied into the deployment repo only for live hosting.
 
 ## Local Setup
 
@@ -24,23 +26,30 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-## Train Locally
-
-First build a curated subset from one or more CICIDS2017 CSVs.
+## Build the Curated Dataset
 
 ```powershell
 python -m src.data.build_subset --csv-paths "D:\data\Tuesday-WorkingHours.pcap_ISCX.csv,D:\data\Thursday-WorkingHours-Morning-WebAttacks.pcap_ISCX.csv,D:\data\Friday-WorkingHours-Afternoon-DDos.pcap_ISCX.csv" --output-path "data\processed\cicids2017_curated.csv"
 ```
 
-Then train on the curated file:
+This creates a smaller working dataset suitable for local training and zero-cost demo preparation.
+
+## Train the Model Locally
 
 ```powershell
 .\scripts\train_local.ps1 -CsvPaths "data\processed\cicids2017_curated.csv"
 ```
 
-This writes artifacts to `artifacts/generated`.
+This writes the trained model and metadata to `artifacts/generated`.
 
-## Run Locally
+Expected generated outputs:
+
+- `artifacts/generated/model.joblib`
+- `artifacts/generated/feature_schema.json`
+- `artifacts/generated/metrics.json`
+- `artifacts/generated/training_summary.json`
+
+## Run the App Locally
 
 ```powershell
 .\scripts\serve_local.ps1 -ArtifactDir "artifacts/generated" -Port 8000
@@ -48,57 +57,53 @@ This writes artifacts to `artifacts/generated`.
 
 Open `http://localhost:8000`.
 
-## GCP Deployment Flow
+## Planned Free Cloud Deployment
 
-### 1. Create buckets and Artifact Registry
+The live deployment target is `Hugging Face Spaces`:
 
-- Create a GCS bucket for raw dataset copies and training artifacts.
-- Create an Artifact Registry Docker repository, for example `nimbuswatch`.
+- free managed hosting for the inference web app
+- Docker-based app deployment
+- public URL for the demo
+- no paid cloud training requirement
 
-### 2. Build images
-
-```powershell
-.\scripts\build_images.ps1 -ProjectId "<gcp-project>" -Region "us-central1" -Repository "nimbuswatch"
-```
-
-### 3. Upload curated dataset to GCS
-
-Example target:
-
-- `gs://<bucket>/datasets/cicids2017/subset1.csv`
-- `gs://<bucket>/datasets/cicids2017/subset2.csv`
-
-### 4. Submit Vertex AI training
-
-```powershell
-.\scripts\submit_vertex_job.ps1 `
-  -ProjectId "<gcp-project>" `
-  -Region "us-central1" `
-  -StagingBucket "gs://<bucket>/staging" `
-  -ArtifactBucketUri "gs://<bucket>/artifacts/latest" `
-  -TrainingImageUri "us-central1-docker.pkg.dev/<gcp-project>/nimbuswatch/nimbuswatch-train:latest" `
-  -CsvGcsPaths "gs://<bucket>/datasets/cicids2017/subset1.csv,gs://<bucket>/datasets/cicids2017/subset2.csv"
-```
-
-### 5. Deploy Cloud Run
-
-```powershell
-.\scripts\deploy_cloud_run.ps1 `
-  -ProjectId "<gcp-project>" `
-  -Region "us-central1" `
-  -ServiceName "nimbuswatch-api" `
-  -ImageUri "us-central1-docker.pkg.dev/<gcp-project>/nimbuswatch/nimbuswatch-serve:latest" `
-  -ArtifactBucketUri "gs://<bucket>/artifacts/latest"
-```
-
-The service loads `model.joblib`, `feature_schema.json`, `metrics.json`, and `training_summary.json` from GCS on startup.
-
-## API
+The deployed app keeps the current interface:
 
 - `GET /health`
 - `GET /model-info`
 - `POST /predict`
 - `GET /`
+
+## Hugging Face Spaces Deployment
+
+Deploy the existing `FastAPI` app through a separate Hugging Face Space repo rather than directly from the GitHub source repo.
+
+### Space repo contents
+
+Copy these items into the Hugging Face Space repository:
+
+- `Dockerfile.serve` renamed to `Dockerfile`
+- `requirements.txt`
+- `src/`
+- `artifacts/generated/`
+- the Space README template from `HUGGINGFACE_SPACE.md`, saved as the Space repo `README.md`
+
+### Space repo steps
+
+1. Create a new `Docker` Space on Hugging Face.
+2. Keep the Space separate from the main GitHub source repository.
+3. Rename `Dockerfile.serve` to `Dockerfile` inside the Space repo.
+4. Retrain locally if needed, then copy the latest generated artifacts from `artifacts/generated`.
+5. Copy the template from `HUGGINGFACE_SPACE.md` into the Space repo `README.md`.
+6. Push the Space repo to Hugging Face.
+
+### Deployment notes
+
+- The app listens on the runtime `PORT` environment variable.
+- The API contract stays unchanged.
+- The deployed app loads local bundled artifacts from `artifacts/generated`.
+- Retrain locally before redeploying if you want updated metrics or a newer model.
+
+## API Example
 
 Example `POST /predict` body:
 
@@ -123,13 +128,48 @@ The service requires the exact saved feature names from `feature_schema.json`. M
 pytest
 ```
 
-## Cloud Computing Justification
+## Why This Counts as Cloud Computing
 
-This qualifies as a cloud computing project because:
+This project still fits a cloud computing course because the final system is designed as a cloud-hosted service:
 
-- training runs on a managed cloud service instead of only on a local laptop
-- inference is deployed as a stateless cloud service
-- model artifacts are stored in cloud object storage
-- compute and storage are separated
-- containers make training and serving reproducible
-- Cloud Run provides low-cost managed scaling for the deployed service
+- inference is exposed as a remotely accessible managed web app
+- the app is containerized for reproducible deployment
+- training and serving are separated into distinct stages
+- model artifacts are produced once and consumed by a stateless service
+- the same service can be hosted on a managed cloud platform without changing the prediction contract
+
+## Demo Flow
+
+For the final demo, present the project in this order:
+
+1. Show the problem statement and explain that the project detects anomalous network traffic using `Isolation Forest`.
+2. Show the trained evaluation results from `artifacts/generated/metrics.json`.
+3. Run the local app and make at least one prediction through the UI.
+4. Open the live `Hugging Face Space` URL and show the same hosted app.
+5. Explain that training is local for zero cost, while inference is deployed as a managed cloud service.
+
+## Viva Notes
+
+Use this explanation in the viva:
+
+- `Why cloud computing?`
+  The final system is deployed as a remotely accessible hosted service instead of remaining only a desktop script.
+- `Why train locally?`
+  The project was constrained to zero cost, so managed cloud training was avoided while keeping deployment cloud-based.
+- `Why is this still cloud-native enough?`
+  The inference app is stateless, containerized, and deployable without changing the API contract.
+- `Why Hugging Face Spaces?`
+  It provides a free managed hosting path for the deployed inference service, which satisfies the live cloud component requirement.
+
+## Fallback Plan
+
+If the live `Hugging Face Space` is not ready in time:
+
+1. Run the local app and complete the prediction demo locally.
+2. Show the Docker deployment files and Space README template.
+3. Explain that the hosted deployment target is prepared and uses the same app and artifacts.
+4. If available, show the Space repository or build logs as evidence of the cloud deployment path.
+
+## Future Extension
+
+If credits or institutional resources become available later, the same architecture can be extended to larger managed cloud platforms. That is optional and not required for the zero-cost version.
