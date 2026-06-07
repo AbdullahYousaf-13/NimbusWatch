@@ -40,7 +40,7 @@
     }
     .hero {
       grid-template-columns: 1.25fr 0.75fr;
-      align-items: start;
+      align-items: stretch;
     }
     .main-grid {
       margin-top: 18px;
@@ -53,6 +53,9 @@
       padding: 22px;
       box-shadow: var(--shadow);
       backdrop-filter: blur(8px);
+    }
+    .hero .card {
+      height: 100%;
     }
     .eyebrow {
       display: inline-block;
@@ -224,11 +227,6 @@
       border-color: rgba(28, 109, 84, 0.45);
       color: var(--good);
     }
-    .result-meta {
-      margin-top: 10px;
-      font-size: 0.92rem;
-      color: var(--muted);
-    }
     .mode-toggle {
       margin-top: 22px;
       width: 100%;
@@ -398,11 +396,6 @@
         <h2>Inference Result</h2>
         <p>The service still enforces the exact saved feature schema from the training artifacts.</p>
         <div id="result" class="result">Select a guided example or upload a one-row CSV to begin.</div>
-        <div id="result-meta" class="result-meta">
-          <div>Recall: {{ "%.4f"|format(model_info.metrics.test.recall) }}</div>
-          <div>Precision: {{ "%.4f"|format(model_info.metrics.test.precision) }}</div>
-          <div>PR-AUC: {{ "%.4f"|format(model_info.metrics.test.pr_auc) }}</div>
-        </div>
 
         <button type="button" class="mode-toggle" id="advanced-toggle" aria-expanded="false">
           <span>Open Advanced Mode</span>
