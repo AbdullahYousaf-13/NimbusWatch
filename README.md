@@ -1,8 +1,8 @@
 # NimbusWatch
 
-NimbusWatch is a hybrid-cloud anomaly-detection project for malicious network traffic. It uses `IsolationForest` on a curated `CICIDS2017` subset and serves predictions through a stateless `FastAPI` application.
+NimbusWatch is a hybrid-cloud malicious-traffic detection project built on a curated `CICIDS2017` subset and served through a stateless `FastAPI` application.
 
-The repo now treats **Google Cloud as the primary architecture** and **Hugging Face Spaces as the secondary demo/backup deployment**. The model remains `IsolationForest`, but the training pipeline has been strengthened with feature selection, outlier-aware preprocessing, broader hyperparameter tuning, and richer evaluation artifacts.
+The repo now treats **Google Cloud as the primary architecture** and **Hugging Face Spaces as the secondary demo/backup deployment**. The current model is a supervised `HistGradientBoostingClassifier` with feature selection, outlier-aware preprocessing, probability-threshold tuning, and richer evaluation artifacts.
 
 ## Final Architecture
 
@@ -37,12 +37,10 @@ flowchart LR
 - preprocessing compares `StandardScaler` and `RobustScaler`
 - feature distributions are clipped with percentile bounds before scaling
 - skewed non-negative features are log-transformed automatically
-- `IsolationForest` tuning now searches:
-  - `n_estimators`
-  - `max_samples`
-  - `max_features`
-  - `contamination`
+- classifier training applies:
+  - histogram gradient boosting
   - preprocessing configuration
+  - feature selection
 - threshold selection now optimizes a **balanced F1** objective
 - saved metrics now include operational measurements such as:
   - single-row inference latency

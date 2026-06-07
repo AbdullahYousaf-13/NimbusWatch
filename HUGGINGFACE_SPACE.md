@@ -11,7 +11,7 @@ license: mit
 
 # NimbusWatch
 
-NimbusWatch is the secondary `Hugging Face Spaces` deployment for the NimbusWatch anomaly-detection project.
+NimbusWatch is the secondary `Hugging Face Spaces` deployment for the NimbusWatch malicious-traffic detection project.
 
 ## Role of This Space
 
@@ -26,7 +26,7 @@ Primary training and artifact management are designed around `Google Cloud`.
 ## What This Space Hosts
 
 - the same `FastAPI` inference app used in the main repo
-- the same trained `IsolationForest` artifacts exported from the primary workflow
+- the same trained classifier artifacts exported from the primary workflow
 - the same HTTP interface used locally and on `Cloud Run`
 
 ## Endpoints

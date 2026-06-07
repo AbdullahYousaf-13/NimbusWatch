@@ -48,6 +48,10 @@ class InferenceService:
     def threshold(self) -> float:
         return float(self._loaded.model_bundle["threshold"])
 
+    @property
+    def score_label(self) -> str:
+        return str(self._loaded.model_bundle.get("score_label", "anomaly_score"))
+
     def validate_payload(self, payload: dict[str, float]) -> None:
         expected = set(self.feature_names)
         received = set(payload.keys())
@@ -67,11 +71,18 @@ class InferenceService:
         self.validate_payload(payload)
         row = pd.DataFrame([[payload[name] for name in self.feature_names]], columns=self.feature_names)
         transformed = self._loaded.model_bundle["preprocessor"].transform(row)
-        anomaly_score = float(-self._loaded.model_bundle["model"].score_samples(transformed)[0])
-        prediction = "attack" if anomaly_score >= self.threshold else "benign"
+        model = self._loaded.model_bundle["model"]
+        model_kind = self._loaded.model_bundle.get("model_kind", "anomaly_detector")
+        if model_kind == "classifier":
+            score = float(model.predict_proba(transformed)[0, 1])
+        else:
+            score = float(-model.score_samples(transformed)[0])
+        prediction = "attack" if score >= self.threshold else "benign"
         return {
             "prediction": prediction,
-            "anomaly_score": anomaly_score,
+            "anomaly_score": score,
+            "score": score,
+            "score_label": self.score_label,
             "threshold": self.threshold,
             "model_name": self._loaded.model_bundle["model_name"],
         }
@@ -82,6 +93,7 @@ class InferenceService:
             "threshold": self.threshold,
             "feature_count": len(self.feature_names),
             "feature_names": self.feature_names,
+            "score_label": self.score_label,
             "selected_params": self._loaded.model_bundle["selected_params"],
             "metrics": self._loaded.metrics,
             "training_summary": self._loaded.summary,

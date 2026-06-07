@@ -31,6 +31,7 @@ class FeaturePreprocessor(BaseEstimator, TransformerMixin):
 
     def fit(self, x: pd.DataFrame, y: pd.Series | None = None) -> "FeaturePreprocessor":
         frame = self._coerce_frame(x)
+        frame = frame.astype(np.float32)
         self.feature_names_in_ = list(frame.columns)
         self.medians_ = frame.median()
         imputed = frame.fillna(self.medians_)
@@ -59,6 +60,7 @@ class FeaturePreprocessor(BaseEstimator, TransformerMixin):
 
     def transform(self, x: pd.DataFrame) -> np.ndarray:
         frame = self._coerce_frame(x)
+        frame = frame.astype(np.float32)
         transformed = frame.fillna(self.medians_)
         transformed = transformed.clip(lower=self.lower_bounds_, upper=self.upper_bounds_, axis=1)
         if self.log_columns_:

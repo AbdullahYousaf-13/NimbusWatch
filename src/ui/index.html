@@ -134,7 +134,7 @@
     <section class="hero">
       <div class="card">
         <h1>NimbusWatch</h1>
-        <p>Cloud-hosted anomaly detection using Isolation Forest on CICIDS2017. Enter one row of numeric features and score it as benign or attack.</p>
+        <p>Cloud-hosted malicious-traffic scoring on CICIDS2017. Enter one row of numeric features and classify it as benign or attack.</p>
         <div class="stats">
           <div class="stat">
             <strong>Model</strong>
@@ -209,7 +209,8 @@
           throw new Error(JSON.stringify(data.detail || data));
         }
         result.classList.add(data.prediction);
-        result.textContent = `${data.prediction.toUpperCase()} | score=${data.anomaly_score.toFixed(6)} | threshold=${data.threshold.toFixed(6)}`;
+        const scoreLabel = data.score_label || "score";
+        result.textContent = `${data.prediction.toUpperCase()} | ${scoreLabel}=${data.anomaly_score.toFixed(6)} | threshold=${data.threshold.toFixed(6)}`;
       } catch (error) {
         result.classList.add("attack");
         result.textContent = `Request failed: ${error.message}`;

@@ -9,15 +9,11 @@ from pathlib import Path
 import joblib
 import numpy as np
 import pandas as pd
-from sklearn.ensemble import IsolationForest
+from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.metrics import average_precision_score, confusion_matrix, f1_score, precision_score, recall_score, roc_auc_score
 from sklearn.model_selection import ParameterGrid, train_test_split
 
-from src.config import (
-    ARTIFACTS_DIR,
-    DEFAULT_RANDOM_STATE,
-    DEFAULT_TARGET_COLUMN,
-)
+from src.config import ARTIFACTS_DIR, DEFAULT_RANDOM_STATE, DEFAULT_TARGET_COLUMN
 from src.models.artifact_store import ensure_local_dir, is_gcs_path, upload_directory
 from src.models.preprocessing import build_preprocessing_pipeline, load_dataset, prepare_dataset, write_schema
 
@@ -47,17 +43,18 @@ def load_csv_paths(raw_paths: str) -> list[str]:
 
 
 def fit_and_score(
-    x_train_benign: np.ndarray,
+    x_train: np.ndarray,
+    y_train: pd.Series,
     x_validation: np.ndarray,
     y_validation: pd.Series,
     params: dict,
-) -> tuple[IsolationForest, float, dict]:
-    model = IsolationForest(**params)
-    model.fit(x_train_benign)
+) -> tuple[HistGradientBoostingClassifier, float, dict]:
+    model = HistGradientBoostingClassifier(**params)
+    model.fit(x_train, y_train)
 
-    scores = -model.score_samples(x_validation)
-    candidate_thresholds = np.quantile(scores, np.linspace(0.4, 0.995, 60))
-    candidate_thresholds = np.unique(candidate_thresholds)
+    scores = model.predict_proba(x_validation)[:, 1]
+    candidate_thresholds = np.linspace(0.05, 0.95, 37)
+    candidate_thresholds = np.unique(np.concatenate([candidate_thresholds, np.quantile(scores, np.linspace(0.05, 0.95, 19))]))
 
     best_threshold = None
     best_metrics = None
@@ -83,10 +80,10 @@ def fit_and_score(
     return model, best_threshold, best_metrics
 
 
-def evaluate_model(model: IsolationForest, threshold: float, x_test: np.ndarray, y_test: pd.Series) -> dict:
-    scores = -model.score_samples(x_test)
+def evaluate_model(model: HistGradientBoostingClassifier, threshold: float, x_test: np.ndarray, y_test: pd.Series) -> dict:
+    scores = model.predict_proba(x_test)[:, 1]
     preds = (scores >= threshold).astype(int)
-    metrics = {
+    return {
         "precision": float(precision_score(y_test, preds, zero_division=0)),
         "recall": float(recall_score(y_test, preds, zero_division=0)),
         "f1": float(f1_score(y_test, preds, zero_division=0)),
@@ -94,15 +91,14 @@ def evaluate_model(model: IsolationForest, threshold: float, x_test: np.ndarray,
         "pr_auc": float(average_precision_score(y_test, scores)),
         "confusion_matrix": confusion_matrix(y_test, preds).tolist(),
     }
-    return metrics
 
 
 def select_training_features(
-    x_train_benign: pd.DataFrame,
+    x_train: pd.DataFrame,
     min_variance: float = 1e-4,
-    correlation_threshold: float = 0.98,
+    correlation_threshold: float = 0.995,
 ) -> tuple[list[str], dict]:
-    filled = x_train_benign.apply(pd.to_numeric, errors="coerce").replace([np.inf, -np.inf], np.nan)
+    filled = x_train.apply(pd.to_numeric, errors="coerce").replace([np.inf, -np.inf], np.nan)
     medians = filled.median()
     filled = filled.fillna(medians)
 
@@ -128,23 +124,22 @@ def select_training_features(
     summary = {
         "min_variance": min_variance,
         "correlation_threshold": correlation_threshold,
-        "initial_feature_count": int(x_train_benign.shape[1]),
+        "initial_feature_count": int(x_train.shape[1]),
         "kept_after_variance_filter": int(len(candidate_columns)),
         "selected_feature_count": int(len(selected)),
-        "dropped_low_variance": sorted(set(x_train_benign.columns) - set(candidate_columns)),
+        "dropped_low_variance": sorted(set(x_train.columns) - set(candidate_columns)),
         "dropped_correlated": dropped_correlated,
     }
     return selected, summary
 
 
-def benchmark_inference_latency(preprocessor, model: IsolationForest, threshold: float, sample: pd.DataFrame) -> dict:
+def benchmark_inference_latency(preprocessor, model: HistGradientBoostingClassifier, sample: pd.DataFrame) -> dict:
     runs = 20
     timings_ms = []
     for _ in range(runs):
         started = time.perf_counter()
         transformed = preprocessor.transform(sample)
-        score = float(-model.score_samples(transformed)[0])
-        _ = score >= threshold
+        _ = float(model.predict_proba(transformed)[0, 1])
         timings_ms.append((time.perf_counter() - started) * 1000)
 
     return {
@@ -196,24 +191,27 @@ def train_model(
     )
 
     benign_mask = y_train == 0
-    x_train_benign = x_train.loc[benign_mask]
-    if max_benign_train_rows > 0 and len(x_train_benign) > max_benign_train_rows:
-        x_train_benign = x_train_benign.sample(n=max_benign_train_rows, random_state=random_state)
+    benign_train_rows = int(benign_mask.sum())
+    benign_train_rows_used = benign_train_rows
+    if max_benign_train_rows > 0:
+        benign_train_rows_used = min(benign_train_rows, max_benign_train_rows)
 
-    selected_features, feature_selection_summary = select_training_features(x_train_benign)
-    x_train_benign = x_train_benign.loc[:, selected_features]
+    selected_features, feature_selection_summary = select_training_features(x_train)
+    x_train_selected = x_train.loc[:, selected_features]
     x_validation_selected = x_validation.loc[:, selected_features]
     x_test_selected = x_test.loc[:, selected_features]
 
     parameter_grid = list(
         ParameterGrid(
             {
-                "preprocessor__scaler_kind": ["standard", "robust"],
-                "preprocessor__clip_quantile": [0.01, 0.02],
-                "n_estimators": [150, 250],
-                "max_samples": ["auto"],
-                "max_features": [0.6, 1.0],
-                "contamination": [0.01, 0.02, 0.05],
+                "preprocessor__scaler_kind": ["robust"],
+                "preprocessor__clip_quantile": [0.01],
+                "learning_rate": [0.08],
+                "max_iter": [200],
+                "max_depth": [8],
+                "max_leaf_nodes": [31],
+                "min_samples_leaf": [20],
+                "l2_regularization": [0.0],
                 "random_state": [random_state],
             }
         )
@@ -226,17 +224,14 @@ def train_model(
             scaler_kind=params["preprocessor__scaler_kind"],
             clip_quantile=params["preprocessor__clip_quantile"],
         )
-        x_train_benign_processed = preprocess.fit_transform(x_train_benign)
+        x_train_processed = preprocess.fit_transform(x_train_selected)
         x_validation_processed = preprocess.transform(x_validation_selected)
         x_test_processed = preprocess.transform(x_test_selected)
 
-        model_params = {
-            key: value
-            for key, value in params.items()
-            if not key.startswith("preprocessor__")
-        }
+        model_params = {key: value for key, value in params.items() if not key.startswith("preprocessor__")}
         model, threshold, validation_metrics = fit_and_score(
-            x_train_benign_processed,
+            x_train_processed,
+            y_train,
             x_validation_processed,
             y_validation,
             model_params,
@@ -261,31 +256,24 @@ def train_model(
             }
 
     test_metrics = evaluate_model(best["model"], best["threshold"], best["x_test_processed"], y_test)
-    latency_metrics = benchmark_inference_latency(
-        best["preprocessor"],
-        best["model"],
-        best["threshold"],
-        x_test_selected.iloc[[0]],
-    )
+    latency_metrics = benchmark_inference_latency(best["preprocessor"], best["model"], x_test_selected.iloc[[0]])
     metrics = {
         "validation": best["validation_metrics"],
         "test": test_metrics,
-        "operational": {
-            **latency_metrics,
-        },
+        "operational": {**latency_metrics},
     }
     top_experiments = sorted(experiments, key=lambda item: item["validation"]["selection_score"], reverse=True)[:5]
     training_summary = asdict(
         TrainingArtifacts(
-            model_name="IsolationForest",
+            model_name="HistGradientBoostingClassifier",
             threshold=best["threshold"],
             selected_params=best["params"],
             preprocessor_config=best["preprocessor"].get_config(),
             train_rows=int(len(x_train)),
             validation_rows=int(len(x_validation)),
             test_rows=int(len(x_test)),
-            benign_train_rows=int(benign_mask.sum()),
-            benign_train_rows_used=int(len(x_train_benign)),
+            benign_train_rows=benign_train_rows,
+            benign_train_rows_used=benign_train_rows_used,
             attack_validation_rows=int((y_validation == 1).sum()),
             attack_test_rows=int((y_test == 1).sum()),
             selected_feature_count=int(len(selected_features)),
@@ -296,7 +284,9 @@ def train_model(
         )
     )
     model_bundle = {
-        "model_name": "IsolationForest",
+        "model_name": "HistGradientBoostingClassifier",
+        "model_kind": "classifier",
+        "score_label": "attack_probability",
         "model": best["model"],
         "preprocessor": best["preprocessor"],
         "threshold": best["threshold"],
@@ -309,7 +299,7 @@ def train_model(
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Train Isolation Forest on CICIDS2017 subset.")
+    parser = argparse.ArgumentParser(description="Train a malicious-traffic classifier on the CICIDS2017 subset.")
     parser.add_argument("--csv-paths", required=True, help="Comma-separated local CSV paths.")
     parser.add_argument("--target-column", default=DEFAULT_TARGET_COLUMN)
     parser.add_argument("--output-dir", default=str(ARTIFACTS_DIR))
