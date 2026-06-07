@@ -97,3 +97,4 @@ def test_index_defaults_to_guided_demo(monkeypatch, trained_artifacts):
         assert "Guided Demo" in response.text
         assert "Advanced Mode" in response.text
         assert "Try your own template" in response.text
+        assert "advanced-scroll" in response.text

@@ -240,6 +240,22 @@
     .advanced-panel[hidden] {
       display: none;
     }
+    .advanced-scroll {
+      margin-top: 16px;
+      max-height: 68vh;
+      overflow-y: auto;
+      padding-right: 8px;
+      border-top: 1px solid rgba(211, 198, 182, 0.8);
+    }
+    .advanced-scroll::-webkit-scrollbar,
+    .kv-list::-webkit-scrollbar {
+      width: 10px;
+    }
+    .advanced-scroll::-webkit-scrollbar-thumb,
+    .kv-list::-webkit-scrollbar-thumb {
+      background: rgba(24, 91, 74, 0.22);
+      border-radius: 999px;
+    }
     .field-section + .field-section {
       margin-top: 18px;
     }
@@ -397,38 +413,40 @@
           <h3 style="margin-top: 18px;">Advanced Mode</h3>
           <p>Use this only if you already have the extracted network-flow metrics. The model expects all {{ model_info.feature_count }} values.</p>
 
-          <div class="button-row">
-            <button type="button" class="ghost" id="load-benign">Load benign example</button>
-            <button type="button" class="ghost" id="load-attack">Load attack example</button>
-            <button type="button" class="ghost" id="reset-form">Reset fields</button>
-          </div>
-
-          <form id="predict-form">
-            {% for group in field_groups %}
-            <section class="field-section">
-              <h3>{{ group.name }}</h3>
-              <div class="field-grid">
-                {% for field in group.fields %}
-                <div class="field-card">
-                  <label for="field-{{ loop.index0 }}-{{ group.name|replace(' ', '-') }}">{{ field.name }}</label>
-                  <span class="field-help">{{ field.description }}</span>
-                  <input
-                    id="field-{{ loop.index0 }}-{{ group.name|replace(' ', '-') }}"
-                    name="{{ field.name }}"
-                    type="number"
-                    step="any"
-                    inputmode="decimal"
-                    placeholder="Enter numeric value"
-                  >
-                </div>
-                {% endfor %}
-              </div>
-            </section>
-            {% endfor %}
+          <div class="advanced-scroll">
             <div class="button-row">
-              <button type="submit">Predict from manual fields</button>
+              <button type="button" class="ghost" id="load-benign">Load benign example</button>
+              <button type="button" class="ghost" id="load-attack">Load attack example</button>
+              <button type="button" class="ghost" id="reset-form">Reset fields</button>
             </div>
-          </form>
+
+            <form id="predict-form">
+              {% for group in field_groups %}
+              <section class="field-section">
+                <h3>{{ group.name }}</h3>
+                <div class="field-grid">
+                  {% for field in group.fields %}
+                  <div class="field-card">
+                    <label for="field-{{ loop.index0 }}-{{ group.name|replace(' ', '-') }}">{{ field.name }}</label>
+                    <span class="field-help">{{ field.description }}</span>
+                    <input
+                      id="field-{{ loop.index0 }}-{{ group.name|replace(' ', '-') }}"
+                      name="{{ field.name }}"
+                      type="number"
+                      step="any"
+                      inputmode="decimal"
+                      placeholder="Enter numeric value"
+                    >
+                  </div>
+                  {% endfor %}
+                </div>
+              </section>
+              {% endfor %}
+              <div class="button-row">
+                <button type="submit">Predict from manual fields</button>
+              </div>
+            </form>
+          </div>
         </section>
       </div>
     </section>
