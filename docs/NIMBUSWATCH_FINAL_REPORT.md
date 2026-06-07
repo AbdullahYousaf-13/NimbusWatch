@@ -796,57 +796,31 @@ The final implementation satisfies the key report requirements requested for the
 
 Most importantly, NimbusWatch demonstrates that cloud computing is not only about placing code on a remote server. It is about designing a complete system that uses cloud concepts intentionally. In NimbusWatch, model artifacts are separated from serving, serverless design reduces idle cost, support services improve observability, and hybrid-cloud packaging improves portability. Combined with strong recorded prediction performance, these qualities make NimbusWatch a well-rounded and submission-ready cloud computing project.
 
-## Appendix A: Key Commands Used in the Project
+## Appendix A: Operational Execution Summary
 
 ### Build Curated Dataset
 
-```powershell
-python -m src.data.build_subset `
-  --csv-paths "D:\data\Tuesday-WorkingHours.pcap_ISCX.csv,D:\data\Thursday-WorkingHours-Morning-WebAttacks.pcap_ISCX.csv,D:\data\Friday-WorkingHours-Afternoon-DDos.pcap_ISCX.csv" `
-  --output-path "data\processed\cicids2017_curated.csv" `
-  --shuffle-output
-```
+The dataset preparation step is performed by running the curation module against selected CICIDS2017 CSV files. The execution requires the source CSV paths, the target output CSV location, and optional balancing settings such as shuffled output or row caps per class segment. In NimbusWatch, this process produces a curated CSV stored under the processed data directory and used as the main training input.
 
 ### Local Training
 
-```powershell
-.\scripts\train_local.ps1 -CsvPaths "data\processed\cicids2017_curated.csv"
-```
+The local training stage is executed through the project training script. This stage reads the curated dataset, applies preprocessing and feature selection, trains the final classifier, and writes the deployment artifacts into the generated artifacts directory. The artifacts produced by this step are the source of truth for local serving, cloud artifact upload, and secondary deployment packaging.
 
 ### Local Serving
 
-```powershell
-.\scripts\serve_local.ps1 -ArtifactDir "artifacts/generated" -Port 8000
-```
+The local serving stage is executed through the local service script. This starts the FastAPI application on a configurable port and loads artifacts either from the generated local artifact directory or, if configured, from a cloud artifact location. This step is used during development, validation, and live demonstration before or alongside public deployment.
 
 ### Vertex AI Training
 
-```powershell
-.\scripts\submit_vertex_job.ps1 `
-  -ProjectId "<gcp-project-id>" `
-  -Region "<gcp-region>" `
-  -StagingBucket "gs://<staging-bucket>" `
-  -ArtifactBucketUri "gs://<artifact-bucket>/nimbuswatch/latest" `
-  -TrainingImageUri "<region>-docker.pkg.dev/<project>/<repo>/nimbuswatch-train:latest" `
-  -CsvGcsPaths "gs://<bucket>/datasets/cicids2017_curated.csv"
-```
+The managed cloud training path uses the Vertex AI job submission script. To execute this workflow, the operator provides the Google Cloud project identifier, region, staging bucket, artifact storage destination, training container image reference, and the cloud-accessible dataset path. The script submits a managed custom job that runs the NimbusWatch training container and publishes the resulting artifacts to the configured artifact storage location.
 
 ### Cloud Run Deployment
 
-```powershell
-.\scripts\deploy_cloud_run.ps1 `
-  -ProjectId "<gcp-project-id>" `
-  -Region "<gcp-region>" `
-  -ServiceName "nimbuswatch-api" `
-  -ImageUri "<region>-docker.pkg.dev/<project>/<repo>/nimbuswatch-serve:latest" `
-  -ArtifactBucketUri "gs://<artifact-bucket>/nimbuswatch/latest"
-```
+The primary inference deployment is executed through the Cloud Run deployment script. This requires the Google Cloud project identifier, deployment region, service name, serving container image, and artifact storage URI. The deployment process publishes the stateless FastAPI inference service and configures it to load the trained artifacts from the designated cloud storage path.
 
 ### Hugging Face Secondary Deployment Packaging
 
-```powershell
-.\scripts\sync_huggingface_bundle.ps1 -SpaceRepoPath "D:\repos\nimbuswatch-space"
-```
+The secondary deployment is prepared through the Hugging Face bundle synchronization script. This script copies the serving Dockerfile, dependency manifest, application source code, and latest generated artifacts into the separate Hugging Face Space repository. As a result, the same trained model and API behavior can be demonstrated from the secondary cloud environment without changing the core application logic.
 
 ## Appendix B: Key Generated Artifacts
 
