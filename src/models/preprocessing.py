@@ -87,7 +87,12 @@ class FeaturePreprocessor(BaseEstimator, TransformerMixin):
         frame = pd.DataFrame(x).copy()
         if hasattr(self, "feature_names_in_"):
             frame = frame.loc[:, self.feature_names_in_]
-        frame = frame.apply(pd.to_numeric, errors="coerce")
+        try:
+            frame = frame.astype(np.float32, copy=False)
+        except (TypeError, ValueError):
+            for column in frame.columns:
+                frame[column] = pd.to_numeric(frame[column], errors="coerce")
+            frame = frame.astype(np.float32, copy=False)
         return frame.replace([np.inf, -np.inf], np.nan)
 
 
