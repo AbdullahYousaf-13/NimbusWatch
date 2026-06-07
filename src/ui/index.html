@@ -6,126 +6,283 @@
   <title>NimbusWatch</title>
   <style>
     :root {
-      --bg: #f4efe7;
-      --panel: #fffaf4;
-      --ink: #1d1a17;
-      --muted: #6e665f;
-      --accent: #0d6b5d;
-      --accent-2: #d99152;
-      --border: #d7cabb;
-      --danger: #aa3a2a;
+      --bg: #efe8dd;
+      --panel: rgba(255, 251, 246, 0.94);
+      --panel-strong: #fffdf9;
+      --ink: #1f2522;
+      --muted: #5f6c65;
+      --border: #d3c6b6;
+      --accent: #185b4a;
+      --accent-2: #ba6f33;
+      --danger: #a33131;
+      --good: #1c6d54;
+      --shadow: 0 18px 40px rgba(72, 53, 28, 0.1);
     }
     * { box-sizing: border-box; }
     body {
       margin: 0;
+      color: var(--ink);
       font-family: Georgia, "Times New Roman", serif;
       background:
-        radial-gradient(circle at top left, rgba(217,145,82,0.18), transparent 30%),
-        linear-gradient(135deg, #f7f1e7, #efe4d3 55%, #eadbc8);
-      color: var(--ink);
+        radial-gradient(circle at top left, rgba(186, 111, 51, 0.18), transparent 28%),
+        radial-gradient(circle at bottom right, rgba(24, 91, 74, 0.12), transparent 24%),
+        linear-gradient(135deg, #f8f1e8, #ece3d4 55%, #e5d8c8);
     }
     .shell {
-      max-width: 1120px;
+      max-width: 1200px;
       margin: 0 auto;
-      padding: 32px 20px 56px;
+      padding: 28px 18px 56px;
+    }
+    .hero,
+    .main-grid {
+      display: grid;
+      gap: 18px;
     }
     .hero {
-      display: grid;
-      grid-template-columns: 1.2fr 0.8fr;
-      gap: 20px;
+      grid-template-columns: 1.25fr 0.75fr;
       align-items: start;
     }
-    .card {
-      background: rgba(255, 250, 244, 0.92);
-      border: 1px solid var(--border);
-      border-radius: 18px;
-      padding: 22px;
-      box-shadow: 0 10px 30px rgba(76, 53, 28, 0.08);
+    .main-grid {
+      margin-top: 18px;
+      grid-template-columns: 1.2fr 0.8fr;
     }
-    h1, h2 {
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      padding: 22px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(8px);
+    }
+    .eyebrow {
+      display: inline-block;
+      margin-bottom: 10px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(24, 91, 74, 0.08);
+      color: var(--accent);
+      font-size: 0.78rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    h1, h2, h3 {
       margin: 0 0 10px;
       font-weight: 600;
-      letter-spacing: 0.02em;
+      letter-spacing: 0.01em;
     }
     p {
       margin: 0;
+      line-height: 1.55;
       color: var(--muted);
-      line-height: 1.5;
+    }
+    .stats,
+    .glossary,
+    .scenario-grid,
+    .field-grid {
+      display: grid;
+      gap: 12px;
     }
     .stats {
       margin-top: 18px;
-      display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 12px;
     }
-    .stat {
-      padding: 14px;
-      border-radius: 14px;
-      background: #f8f1e6;
+    .stat,
+    .glossary-item,
+    .upload-box,
+    .scenario,
+    .field-card {
       border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.72);
+      border-radius: 16px;
     }
-    .stat strong {
+    .stat,
+    .glossary-item,
+    .upload-box,
+    .field-card {
+      padding: 14px;
+    }
+    .stat strong,
+    .glossary-item strong {
       display: block;
-      font-size: 0.85rem;
-      color: var(--muted);
       margin-bottom: 6px;
+      color: var(--ink);
+      font-size: 0.92rem;
     }
-    .stat span {
-      font-size: 1.1rem;
+    .scenario-grid {
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      margin-top: 16px;
     }
-    form {
+    .scenario {
+      padding: 16px;
+      cursor: pointer;
+      transition: transform 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
+    }
+    .scenario:hover,
+    .scenario.active {
+      transform: translateY(-2px);
+      border-color: rgba(24, 91, 74, 0.5);
+      box-shadow: 0 14px 24px rgba(24, 91, 74, 0.1);
+    }
+    .scenario .tag,
+    .pill {
+      display: inline-block;
+      padding: 5px 9px;
+      border-radius: 999px;
+      font-size: 0.76rem;
+      background: rgba(186, 111, 51, 0.12);
+      color: #8f5426;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .scenario h3 {
+      margin-top: 10px;
+      margin-bottom: 8px;
+      font-size: 1.05rem;
+    }
+    .scenario details {
+      margin-top: 12px;
+      color: var(--muted);
+    }
+    .scenario details summary {
+      cursor: pointer;
+      color: var(--accent);
+    }
+    .kv-list {
+      margin: 10px 0 0;
+      padding: 0;
+      list-style: none;
+      max-height: 180px;
+      overflow: auto;
+      border-top: 1px solid rgba(211, 198, 182, 0.9);
+    }
+    .kv-list li {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(211, 198, 182, 0.45);
+      font-size: 0.88rem;
+    }
+    .kv-list code {
+      color: var(--ink);
+    }
+    .glossary {
+      margin-top: 16px;
+    }
+    .upload-box {
+      margin-top: 18px;
+    }
+    .upload-actions,
+    .button-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 12px;
+    }
+    button,
+    .link-button,
+    .file-label {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 11px 16px;
+      border-radius: 999px;
+      border: 0;
+      cursor: pointer;
+      font-size: 0.95rem;
+      font-family: inherit;
+      text-decoration: none;
+    }
+    button,
+    .file-label {
+      background: linear-gradient(135deg, var(--accent), #0e7a63);
+      color: #fff;
+    }
+    .link-button,
+    .ghost {
+      background: rgba(24, 91, 74, 0.08);
+      color: var(--accent);
+      border: 1px solid rgba(24, 91, 74, 0.2);
+    }
+    .file-label input {
+      display: none;
+    }
+    .result {
+      margin-top: 16px;
+      min-height: 100px;
+      padding: 16px;
+      border-radius: 18px;
+      border: 1px solid var(--border);
+      background: var(--panel-strong);
+    }
+    .result.attack {
+      border-color: rgba(163, 49, 49, 0.45);
+      color: var(--danger);
+    }
+    .result.benign {
+      border-color: rgba(28, 109, 84, 0.45);
+      color: var(--good);
+    }
+    .result-meta {
+      margin-top: 10px;
+      font-size: 0.92rem;
+      color: var(--muted);
+    }
+    .mode-toggle {
       margin-top: 22px;
-      display: grid;
-      gap: 14px;
+      width: 100%;
+      justify-content: space-between;
+      background: rgba(186, 111, 51, 0.1);
+      color: #7c4d24;
+      border: 1px solid rgba(186, 111, 51, 0.2);
     }
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 12px;
+    .advanced-panel[hidden] {
+      display: none;
+    }
+    .field-section + .field-section {
+      margin-top: 18px;
+    }
+    .field-grid {
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      margin-top: 12px;
     }
     label {
       display: block;
-      font-size: 0.88rem;
-      color: var(--muted);
       margin-bottom: 6px;
+      color: var(--ink);
+      font-size: 0.9rem;
     }
-    input {
+    .field-help {
+      display: block;
+      min-height: 34px;
+      color: var(--muted);
+      font-size: 0.82rem;
+      line-height: 1.35;
+      margin-bottom: 8px;
+    }
+    input[type="number"] {
       width: 100%;
       padding: 10px 12px;
       border-radius: 12px;
       border: 1px solid var(--border);
       background: #fff;
       color: var(--ink);
+      font: inherit;
     }
-    button {
-      width: fit-content;
-      padding: 12px 18px;
-      border: 0;
-      border-radius: 999px;
-      background: linear-gradient(135deg, var(--accent), #0f8572);
-      color: #fff;
-      font-weight: 600;
-      cursor: pointer;
+    .hidden {
+      display: none;
     }
-    .result {
-      margin-top: 18px;
-      padding: 14px;
-      border-radius: 14px;
-      background: #f8f1e6;
-      border: 1px solid var(--border);
-      min-height: 64px;
-    }
-    .result.attack {
-      border-color: rgba(170, 58, 42, 0.4);
-      color: var(--danger);
-    }
-    .meta {
-      margin-top: 24px;
-      font-size: 0.92rem;
+    .tiny {
+      margin-top: 10px;
+      font-size: 0.85rem;
       color: var(--muted);
     }
-    @media (max-width: 800px) {
-      .hero { grid-template-columns: 1fr; }
+    @media (max-width: 900px) {
+      .hero,
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
     }
   </style>
 </head>
@@ -133,8 +290,9 @@
   <main class="shell">
     <section class="hero">
       <div class="card">
+        <span class="eyebrow">Guided Demo</span>
         <h1>NimbusWatch</h1>
-        <p>Cloud-hosted malicious-traffic scoring on CICIDS2017. Enter one row of numeric features and classify it as benign or attack.</p>
+        <p>NimbusWatch classifies one network flow at a time. It works on extracted numeric flow metrics, so a layman should start with guided examples or a prepared CSV template instead of typing raw network features manually.</p>
         <div class="stats">
           <div class="stat">
             <strong>Model</strong>
@@ -154,50 +312,161 @@
           </div>
         </div>
       </div>
+
       <div class="card">
-        <h2>Inference Result</h2>
-        <p>The service enforces the exact saved feature schema from training artifacts.</p>
-        <div id="result" class="result">No prediction yet.</div>
-        <div class="meta">
-          <div>Recall: {{ "%.4f"|format(model_info.metrics.test.recall) }}</div>
-          <div>Precision: {{ "%.4f"|format(model_info.metrics.test.precision) }}</div>
-          <div>PR-AUC: {{ "%.4f"|format(model_info.metrics.test.pr_auc) }}</div>
+        <span class="eyebrow">Plain-English Guide</span>
+        <h2>Where do these values come from?</h2>
+        <div class="glossary">
+          <div class="glossary-item">
+            <strong>Network flow</strong>
+            <span>A flow is a summarized conversation between endpoints, such as one client session talking to a server.</span>
+          </div>
+          <div class="glossary-item">
+            <strong>What the model reads</strong>
+            <span>The model reads pre-extracted flow metrics like timing, packet sizes, rates, and TCP flags.</span>
+          </div>
+          <div class="glossary-item">
+            <strong>What a public user should do</strong>
+            <span>Use the guided examples below, or upload one CSV row that already contains the trained feature columns.</span>
+          </div>
         </div>
       </div>
     </section>
 
-    <section class="card" style="margin-top: 20px;">
-      <h2>Manual Feature Input</h2>
-      <form id="predict-form">
-        <div class="grid">
-          {% for feature in feature_names %}
-          <div>
-            <label for="feature-{{ loop.index }}">{{ feature }}</label>
-            <input id="feature-{{ loop.index }}" name="{{ feature }}" type="number" step="any" value="0" required>
-          </div>
+    <section class="main-grid">
+      <div class="card">
+        <span class="eyebrow">Guided Demo</span>
+        <h2>Pick a prepared traffic example</h2>
+        <p>Choose a scenario, then run prediction. Each example comes from the curated CICIDS-style data and already contains the required model fields.</p>
+
+        <div class="scenario-grid" id="scenario-grid">
+          {% for scenario in demo_scenarios %}
+          <article class="scenario{% if loop.first %} active{% endif %}" data-scenario-id="{{ scenario.id }}">
+            <span class="tag">{{ scenario.expected_label }}</span>
+            <h3>{{ scenario.title }}</h3>
+            <p>{{ scenario.description }}</p>
+            <p class="tiny">Dataset label: {{ scenario.source_label }}</p>
+            <details>
+              <summary>Technical details</summary>
+              <ul class="kv-list">
+                {% for feature_name, value in scenario.payload.items() %}
+                <li><code>{{ feature_name }}</code><span>{{ "%.4f"|format(value) }}</span></li>
+                {% endfor %}
+              </ul>
+            </details>
+          </article>
           {% endfor %}
         </div>
-        <button type="submit">Predict</button>
-      </form>
+
+        <div class="button-row">
+          <button type="button" id="run-guided">Run selected example</button>
+        </div>
+
+        <div class="upload-box">
+          <h3>Try your own template</h3>
+          <p>Upload a UTF-8 CSV with exactly one data row and the exact trained columns. NimbusWatch will validate the headers and score the row if it matches the schema.</p>
+          <div class="upload-actions">
+            <a class="link-button" href="/template.csv" download="nimbuswatch_template.csv">Download CSV template</a>
+            <label class="file-label">
+              <input id="csv-upload" type="file" accept=".csv,text/csv">
+              Choose CSV file
+            </label>
+            <button type="button" class="ghost" id="upload-csv">Upload and predict</button>
+          </div>
+          <div class="tiny">This upload flow expects extracted feature columns, not raw packet capture files.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <span class="eyebrow">Result</span>
+        <h2>Inference Result</h2>
+        <p>The service still enforces the exact saved feature schema from the training artifacts.</p>
+        <div id="result" class="result">Select a guided example or upload a one-row CSV to begin.</div>
+        <div id="result-meta" class="result-meta">
+          <div>Recall: {{ "%.4f"|format(model_info.metrics.test.recall) }}</div>
+          <div>Precision: {{ "%.4f"|format(model_info.metrics.test.precision) }}</div>
+          <div>PR-AUC: {{ "%.4f"|format(model_info.metrics.test.pr_auc) }}</div>
+        </div>
+
+        <button type="button" class="mode-toggle" id="advanced-toggle" aria-expanded="false">
+          <span>Open Advanced Mode</span>
+          <span>50 raw fields</span>
+        </button>
+
+        <section id="advanced-panel" class="advanced-panel" hidden>
+          <h3 style="margin-top: 18px;">Advanced Mode</h3>
+          <p>Use this only if you already have the extracted network-flow metrics. The model expects all {{ model_info.feature_count }} values.</p>
+
+          <div class="button-row">
+            <button type="button" class="ghost" id="load-benign">Load benign example</button>
+            <button type="button" class="ghost" id="load-attack">Load attack example</button>
+            <button type="button" class="ghost" id="reset-form">Reset fields</button>
+          </div>
+
+          <form id="predict-form">
+            {% for group in field_groups %}
+            <section class="field-section">
+              <h3>{{ group.name }}</h3>
+              <div class="field-grid">
+                {% for field in group.fields %}
+                <div class="field-card">
+                  <label for="field-{{ loop.index0 }}-{{ group.name|replace(' ', '-') }}">{{ field.name }}</label>
+                  <span class="field-help">{{ field.description }}</span>
+                  <input
+                    id="field-{{ loop.index0 }}-{{ group.name|replace(' ', '-') }}"
+                    name="{{ field.name }}"
+                    type="number"
+                    step="any"
+                    inputmode="decimal"
+                    placeholder="Enter numeric value"
+                  >
+                </div>
+                {% endfor %}
+              </div>
+            </section>
+            {% endfor %}
+            <div class="button-row">
+              <button type="submit">Predict from manual fields</button>
+            </div>
+          </form>
+        </section>
+      </div>
     </section>
   </main>
 
   <script>
-    const form = document.getElementById("predict-form");
+    const scenarios = {{ demo_scenarios | tojson }};
+    const featureNames = {{ feature_names | tojson }};
     const result = document.getElementById("result");
+    const advancedPanel = document.getElementById("advanced-panel");
+    const advancedToggle = document.getElementById("advanced-toggle");
+    const predictForm = document.getElementById("predict-form");
+    const scenarioGrid = document.getElementById("scenario-grid");
+    const csvUpload = document.getElementById("csv-upload");
 
-    form.addEventListener("submit", async (event) => {
-      event.preventDefault();
-      const payload = {};
-      for (const element of form.elements) {
-        if (element.name) {
-          payload[element.name] = Number(element.value);
-        }
-      }
+    let selectedScenarioId = scenarios.length ? scenarios[0].id : null;
 
+    function setResultState(kind, message) {
       result.className = "result";
-      result.textContent = "Running prediction...";
+      if (kind) {
+        result.classList.add(kind);
+      }
+      result.textContent = message;
+    }
 
+    function scenarioById(id) {
+      return scenarios.find((item) => item.id === id) || null;
+    }
+
+    function selectScenario(id) {
+      selectedScenarioId = id;
+      for (const card of scenarioGrid.querySelectorAll(".scenario")) {
+        card.classList.toggle("active", card.dataset.scenarioId === id);
+      }
+    }
+
+    async function sendPayload(payload, contextLabel) {
+      setResultState("", "Running prediction...");
       try {
         const response = await fetch("/predict", {
           method: "POST",
@@ -208,12 +477,116 @@
         if (!response.ok) {
           throw new Error(JSON.stringify(data.detail || data));
         }
-        result.classList.add(data.prediction);
         const scoreLabel = data.score_label || "score";
-        result.textContent = `${data.prediction.toUpperCase()} | ${scoreLabel}=${data.anomaly_score.toFixed(6)} | threshold=${data.threshold.toFixed(6)}`;
+        setResultState(
+          data.prediction,
+          `${contextLabel}: ${data.prediction.toUpperCase()} | ${scoreLabel}=${data.anomaly_score.toFixed(6)} | threshold=${data.threshold.toFixed(6)}`
+        );
       } catch (error) {
-        result.classList.add("attack");
-        result.textContent = `Request failed: ${error.message}`;
+        setResultState("attack", `Request failed: ${error.message}`);
+      }
+    }
+
+    function loadScenarioIntoForm(scenario) {
+      if (!scenario) {
+        return;
+      }
+      for (const [key, value] of Object.entries(scenario.payload)) {
+        const input = predictForm.elements.namedItem(key);
+        if (input) {
+          input.value = value;
+        }
+      }
+    }
+
+    scenarioGrid.addEventListener("click", (event) => {
+      const card = event.target.closest(".scenario");
+      if (!card) {
+        return;
+      }
+      selectScenario(card.dataset.scenarioId);
+    });
+
+    document.getElementById("run-guided").addEventListener("click", async () => {
+      const scenario = scenarioById(selectedScenarioId);
+      if (!scenario) {
+        setResultState("attack", "No guided scenario is available.");
+        return;
+      }
+      await sendPayload(scenario.payload, scenario.title);
+    });
+
+    advancedToggle.addEventListener("click", () => {
+      const open = advancedPanel.hasAttribute("hidden");
+      if (open) {
+        advancedPanel.removeAttribute("hidden");
+      } else {
+        advancedPanel.setAttribute("hidden", "");
+      }
+      advancedToggle.setAttribute("aria-expanded", String(open));
+      advancedToggle.querySelector("span").textContent = open ? "Close Advanced Mode" : "Open Advanced Mode";
+    });
+
+    document.getElementById("load-benign").addEventListener("click", () => {
+      const scenario = scenarios.find((item) => item.expected_label === "benign") || scenarios[0];
+      loadScenarioIntoForm(scenario);
+      if (scenario) {
+        selectScenario(scenario.id);
+      }
+    });
+
+    document.getElementById("load-attack").addEventListener("click", () => {
+      const scenario = scenarios.find((item) => item.expected_label === "attack") || scenarios[0];
+      loadScenarioIntoForm(scenario);
+      if (scenario) {
+        selectScenario(scenario.id);
+      }
+    });
+
+    document.getElementById("reset-form").addEventListener("click", () => {
+      predictForm.reset();
+    });
+
+    predictForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const payload = {};
+      for (const name of featureNames) {
+        const input = predictForm.elements.namedItem(name);
+        if (!input || input.value === "") {
+          setResultState("attack", `Missing manual field: ${name}`);
+          return;
+        }
+        payload[name] = Number(input.value);
+      }
+      await sendPayload(payload, "Manual input");
+    });
+
+    document.getElementById("upload-csv").addEventListener("click", async () => {
+      if (!csvUpload.files.length) {
+        setResultState("attack", "Choose a CSV file before uploading.");
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("file", csvUpload.files[0]);
+      setResultState("", "Uploading CSV and validating schema...");
+
+      try {
+        const response = await fetch("/predict-csv", {
+          method: "POST",
+          body: formData,
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(JSON.stringify(data.detail || data));
+        }
+        const scoreLabel = data.score_label || "score";
+        setResultState(
+          data.prediction,
+          `CSV upload: ${data.prediction.toUpperCase()} | ${scoreLabel}=${data.anomaly_score.toFixed(6)} | threshold=${data.threshold.toFixed(6)}`
+        );
+      } catch (error) {
+        setResultState("attack", `CSV upload failed: ${error.message}`);
       }
     });
   </script>

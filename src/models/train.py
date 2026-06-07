@@ -15,6 +15,7 @@ from sklearn.model_selection import ParameterGrid, train_test_split
 
 from src.config import ARTIFACTS_DIR, DEFAULT_RANDOM_STATE, DEFAULT_TARGET_COLUMN
 from src.models.artifact_store import ensure_local_dir, is_gcs_path, upload_directory
+from src.models.demo_scenarios import build_demo_scenarios, write_demo_scenarios
 from src.models.preprocessing import build_preprocessing_pipeline, load_dataset, prepare_dataset, write_schema
 
 
@@ -155,12 +156,14 @@ def save_artifacts(
     feature_names: list[str],
     metrics: dict,
     training_summary: dict,
+    demo_scenarios: dict,
 ) -> None:
     ensure_local_dir(output_dir)
     joblib.dump(model_bundle, output_dir / "model.joblib")
     metrics.setdefault("operational", {})
     metrics["operational"]["artifact_size_bytes"] = int((output_dir / "model.joblib").stat().st_size)
     write_schema(str(output_dir / "feature_schema.json"), feature_names)
+    write_demo_scenarios(output_dir / "demo_scenarios.json", demo_scenarios)
     (output_dir / "metrics.json").write_text(json.dumps(metrics, indent=2), encoding="utf-8")
     (output_dir / "training_summary.json").write_text(json.dumps(training_summary, indent=2), encoding="utf-8")
 
@@ -200,6 +203,7 @@ def train_model(
     x_train_selected = x_train.loc[:, selected_features]
     x_validation_selected = x_validation.loc[:, selected_features]
     x_test_selected = x_test.loc[:, selected_features]
+    demo_scenarios = build_demo_scenarios(prepared.features, dataframe[target_column], selected_features)
 
     parameter_grid = list(
         ParameterGrid(
@@ -294,7 +298,7 @@ def train_model(
         "selected_params": best["params"],
     }
 
-    save_artifacts(output_dir, model_bundle, selected_features, metrics, training_summary)
+    save_artifacts(output_dir, model_bundle, selected_features, metrics, training_summary, demo_scenarios)
     return metrics, training_summary
 
 
@@ -325,7 +329,7 @@ def main() -> None:
         upload_directory(
             output_dir,
             args.artifact_gcs_uri,
-            ("model.joblib", "feature_schema.json", "metrics.json", "training_summary.json"),
+            ("model.joblib", "feature_schema.json", "demo_scenarios.json", "metrics.json", "training_summary.json"),
         )
 
     print(json.dumps({"metrics": metrics, "summary": training_summary}, indent=2))

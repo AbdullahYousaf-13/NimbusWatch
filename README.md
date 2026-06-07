@@ -50,6 +50,7 @@ Artifacts written after training:
 
 - `model.joblib`
 - `feature_schema.json`
+- `demo_scenarios.json`
 - `metrics.json`
 - `training_summary.json`
 
@@ -129,6 +130,7 @@ Expected outputs:
 
 - `artifacts/generated/model.joblib`
 - `artifacts/generated/feature_schema.json`
+- `artifacts/generated/demo_scenarios.json`
 - `artifacts/generated/metrics.json`
 - `artifacts/generated/training_summary.json`
 
@@ -150,6 +152,17 @@ Expected outputs:
 ```
 
 Open `http://localhost:8000`.
+
+The home page now has two paths:
+
+- `Guided Demo`
+  - best for judges or non-technical users
+  - choose a prepared traffic scenario and run prediction without filling all model fields
+- `Advanced Mode`
+  - best for technical users who already have extracted flow metrics
+  - enter the exact trained feature values manually or upload a one-row CSV using the downloadable template
+
+Important: the app does **not** extract features from raw `.pcap` files in the browser. The model expects pre-extracted network-flow features such as timing, packet sizes, rates, and TCP flag counts.
 
 ## Google Cloud Deployment
 
@@ -234,4 +247,5 @@ pytest
 
 - the repo does **not** claim automatic multi-cloud failover
 - the current backup flow to `Hugging Face` is manual or semi-manual
+- guided demo scenarios come from `demo_scenarios.json` aligned to the current trained feature schema
 - production metrics in `artifacts/generated` should be refreshed by retraining on the full curated dataset before final submission

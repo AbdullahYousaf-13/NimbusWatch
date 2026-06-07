@@ -57,8 +57,17 @@ def prepare_local_artifact_dir(source_uri: str | None) -> Path:
     if not source_uri:
         return temp_dir
 
-    for file_name in ("model.joblib", "feature_schema.json", "metrics.json", "training_summary.json"):
+    required_files = ("model.joblib", "feature_schema.json", "metrics.json", "training_summary.json")
+    optional_files = ("demo_scenarios.json",)
+
+    for file_name in required_files:
         download_file(f"{source_uri.rstrip('/')}/{file_name}", temp_dir / file_name)
+
+    for file_name in optional_files:
+        try:
+            download_file(f"{source_uri.rstrip('/')}/{file_name}", temp_dir / file_name)
+        except Exception:
+            continue
     return temp_dir
 
 

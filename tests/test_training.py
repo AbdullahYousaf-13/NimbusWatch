@@ -8,6 +8,7 @@ from src.models.artifact_store import load_json
 def test_training_exports_required_artifacts(trained_artifacts):
     assert (trained_artifacts / "model.joblib").exists()
     assert (trained_artifacts / "feature_schema.json").exists()
+    assert (trained_artifacts / "demo_scenarios.json").exists()
     assert (trained_artifacts / "metrics.json").exists()
     assert (trained_artifacts / "training_summary.json").exists()
 
@@ -41,3 +42,12 @@ def test_training_summary_includes_feature_selection_and_experiments(trained_art
     assert "feature_selection" in summary
     assert len(summary["top_experiments"]) >= 1
     assert "preprocessor_config" in summary
+
+
+def test_demo_scenarios_match_exported_schema(trained_artifacts):
+    schema = load_json(trained_artifacts / "feature_schema.json")
+    scenarios = load_json(trained_artifacts / "demo_scenarios.json")
+    assert scenarios["scenarios"]
+    expected = set(schema["feature_names"])
+    for scenario in scenarios["scenarios"]:
+        assert set(scenario["payload"].keys()) == expected

@@ -2,7 +2,8 @@ __pycache__/
 .pytest_cache/
 .venv/
 venv/
-artifacts/generated/
+artifacts/generated/*
+!artifacts/generated/demo_scenarios.json
 data/raw/
 data/processed/
 *.pyc

@@ -31,7 +31,10 @@ Demonstrate NimbusWatch as a hybrid-cloud anomaly-detection system with:
 4. Show local inference
    - run `.\scripts\serve_local.ps1`
    - open the UI
-   - submit one sample row
+   - start with the `Guided Demo` path
+   - select one prepared benign example and one attack example
+   - explain that lay users do not need to fill 50 flow metrics manually
+   - show the `Advanced Mode` panel only as a technical fallback
    - explain anomaly score and threshold
 
 5. Show the primary cloud path
@@ -77,7 +80,7 @@ Serverless inference reduces idle cost, simplifies scaling, and avoids manual VM
 If live cloud access is unavailable:
 
 1. run the app locally
-2. show `metrics.json` and `training_summary.json`
+2. show `demo_scenarios.json`, `metrics.json`, and `training_summary.json`
 3. show the GCP deployment scripts
 4. show the `Hugging Face` packaging script
 5. explain that multi-cloud failover is manual or semi-manual in the current version
