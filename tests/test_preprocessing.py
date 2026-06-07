@@ -18,6 +18,8 @@ def test_prepare_dataset_cleans_invalid_values():
     prepared = prepare_dataset(frame)
     assert prepared.feature_names == ["Flow Duration", "Flow Bytes/s"]
 
-    transformed = build_preprocessing_pipeline().fit_transform(prepared.features)
+    preprocessor = build_preprocessing_pipeline(scaler_kind="robust")
+    transformed = preprocessor.fit_transform(prepared.features)
     assert transformed.shape == (3, 2)
     assert np.isfinite(transformed).all()
+    assert preprocessor.get_config()["scaler_kind"] == "robust"

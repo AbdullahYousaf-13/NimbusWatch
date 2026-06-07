@@ -11,22 +11,51 @@ license: mit
 
 # NimbusWatch
 
-NimbusWatch is a binary anomaly-detection web app built on `Isolation Forest` and a curated `CICIDS2017` subset.
+NimbusWatch is the secondary `Hugging Face Spaces` deployment for the NimbusWatch anomaly-detection project.
 
-## What this Space does
+## Role of This Space
 
-- hosts the trained inference app publicly
-- loads the bundled `model.joblib` and metadata files
-- predicts whether a traffic row is `benign` or `attack`
-- exposes the same `FastAPI` endpoints used locally
+This Space is not the primary production architecture. It is the:
 
-## Included endpoints
+- public demo endpoint
+- secondary cloud deployment
+- backup hosting path for the same inference contract
+
+Primary training and artifact management are designed around `Google Cloud`.
+
+## What This Space Hosts
+
+- the same `FastAPI` inference app used in the main repo
+- the same trained `IsolationForest` artifacts exported from the primary workflow
+- the same HTTP interface used locally and on `Cloud Run`
+
+## Endpoints
 
 - `GET /health`
 - `GET /model-info`
 - `POST /predict`
 - `GET /`
 
-## Deployment source
+## Deployment Workflow
 
-This Space is deployed from a dedicated Hugging Face repository, separate from the main GitHub source repo. The app is trained locally and the generated artifacts are copied into the Space before deployment.
+Deploy this Space from a dedicated `Hugging Face` repo, separate from the main source repository.
+
+Use the main repo script:
+
+```powershell
+.\scripts\sync_huggingface_bundle.ps1 -SpaceRepoPath "D:\repos\nimbuswatch-space"
+```
+
+That script copies:
+
+- `Dockerfile.serve` as `Dockerfile`
+- `requirements.txt`
+- `src/`
+- `artifacts/generated/`
+- this file as the Space `README.md`
+
+## Notes
+
+- this Space uses bundled local artifacts instead of pulling directly from `GCS`
+- the backup flow is manual or semi-manual
+- it is intended for demo continuity and cross-cloud portability, not automatic failover

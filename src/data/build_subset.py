@@ -14,6 +14,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output-path", required=True, help="Output CSV path.")
     parser.add_argument("--target-column", default=DEFAULT_TARGET_COLUMN)
     parser.add_argument("--benign-per-file", type=int, default=50000)
+    parser.add_argument("--attack-cap-per-label", type=int, default=0)
+    parser.add_argument("--shuffle-output", action="store_true")
     parser.add_argument("--random-state", type=int, default=DEFAULT_RANDOM_STATE)
     return parser.parse_args()
 
@@ -23,6 +25,8 @@ def build_subset(
     output_path: Path,
     target_column: str,
     benign_per_file: int,
+    attack_cap_per_label: int,
+    shuffle_output: bool,
     random_state: int,
 ) -> dict:
     frames = []
@@ -39,8 +43,20 @@ def build_subset(
         if benign_per_file > 0 and len(benign) > benign_per_file:
             benign = benign.sample(n=benign_per_file, random_state=random_state)
 
+        if attack_cap_per_label > 0:
+            attack = (
+                attack.assign(_label_key=labels.loc[attack.index].astype(str).str.strip())
+                .groupby("_label_key", group_keys=False)
+                .apply(
+                    lambda group: group.sample(n=min(len(group), attack_cap_per_label), random_state=random_state)
+                )
+                .drop(columns="_label_key")
+            )
+
         curated = pd.concat([benign, attack], ignore_index=True)
         frames.append(curated)
+
+        attack_labels = labels.loc[attack.index].astype(str).str.strip().value_counts().to_dict()
 
         summary["files"].append(
             {
@@ -48,6 +64,7 @@ def build_subset(
                 "rows_used": int(len(curated)),
                 "benign_rows": int(len(benign)),
                 "attack_rows": int(len(attack)),
+                "attack_label_distribution": {key: int(value) for key, value in attack_labels.items()},
             }
         )
         summary["total_rows"] += int(len(curated))
@@ -55,6 +72,8 @@ def build_subset(
         summary["attack_rows"] += int(len(attack))
 
     merged = pd.concat(frames, ignore_index=True)
+    if shuffle_output:
+        merged = merged.sample(frac=1.0, random_state=random_state).reset_index(drop=True)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     merged.to_csv(output_path, index=False)
     return summary
@@ -68,6 +87,8 @@ def main() -> None:
         output_path=Path(args.output_path),
         target_column=args.target_column,
         benign_per_file=args.benign_per_file,
+        attack_cap_per_label=args.attack_cap_per_label,
+        shuffle_output=args.shuffle_output,
         random_state=args.random_state,
     )
     print(summary)
